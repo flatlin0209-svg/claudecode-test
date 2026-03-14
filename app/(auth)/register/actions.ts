@@ -25,27 +25,19 @@ export async function registerAction(formData: FormData) {
 
   const supabase = await createClient()
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { gender, birthdate }, // トリガーで profiles に自動挿入される
+    },
+  })
 
   if (error) {
-    if (error.message.includes('already registered')) {
+    if (error.message.includes('already registered') || error.message.includes('User already registered')) {
       return { error: 'このメールアドレスは既に登録されています' }
     }
-    return { error: '登録に失敗しました。しばらくしてからお試しください' }
-  }
-
-  if (data.user) {
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: data.user.id,
-      nickname: '',
-      gender,
-      birthdate,
-      is_profile_complete: false,
-    })
-
-    if (profileError) {
-      return { error: 'プロフィールの作成に失敗しました' }
-    }
+    return { error: `登録に失敗しました: ${error.message}` }
   }
 
   redirect('/profile/edit')
