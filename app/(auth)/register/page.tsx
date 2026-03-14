@@ -53,8 +53,7 @@ export default function RegisterPage() {
       return
     }
 
-    router.push('/profile/edit')
-    router.refresh()
+    window.location.href = '/profile/edit'
   }
 
   return (
