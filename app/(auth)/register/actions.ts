@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { isAdult } from '@/lib/utils/validation'
-import { redirect } from 'next/navigation'
 
 export async function registerAction(formData: FormData) {
   const email = formData.get('email') as string
@@ -40,5 +39,5 @@ export async function registerAction(formData: FormData) {
     return { error: `登録に失敗しました: ${error.message}` }
   }
 
-  redirect('/profile/edit')
+  return { success: true }
 }

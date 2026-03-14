@@ -17,6 +17,8 @@ export default function RegisterPage() {
     setLoading(false)
     if (result?.error) {
       setError(result.error)
+    } else if (result?.success) {
+      router.push('/profile/edit')
     }
   }
 

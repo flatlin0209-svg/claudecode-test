@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { loginAction } from './actions'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   async function handleSubmit(formData: FormData) {
     setError(null)
@@ -15,6 +17,8 @@ export default function LoginPage() {
     setLoading(false)
     if (result?.error) {
       setError(result.error)
+    } else if (result?.success) {
+      router.push('/home')
     }
   }
 
