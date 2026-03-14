@@ -3,23 +3,58 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { registerAction } from './actions'
+import { createClient } from '@/lib/supabase/client'
+import { isAdult } from '@/lib/utils/validation'
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setError(null)
-    setLoading(true)
-    const result = await registerAction(formData)
-    setLoading(false)
-    if (result?.error) {
-      setError(result.error)
-    } else if (result?.success) {
-      router.push('/profile/edit')
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+    const birthdate = formData.get('birthdate') as string
+    const gender = formData.get('gender') as string
+
+    if (password !== confirmPassword) {
+      setError('パスワードが一致しません')
+      return
     }
+    if (password.length < 8) {
+      setError('パスワードは8文字以上で入力してください')
+      return
+    }
+    if (!isAdult(birthdate)) {
+      setError('18歳未満の方はご利用いただけません')
+      return
+    }
+
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { gender, birthdate } },
+    })
+    setLoading(false)
+
+    if (error) {
+      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+        setError('このメールアドレスは既に登録されています')
+      } else {
+        setError(`登録に失敗しました: ${error.message}`)
+      }
+      return
+    }
+
+    router.push('/profile/edit')
+    router.refresh()
   }
 
   return (
@@ -27,7 +62,7 @@ export default function RegisterPage() {
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
         <h1 className="text-2xl font-bold text-center text-rose-500 mb-6">新規登録</h1>
 
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               メールアドレス

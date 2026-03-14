@@ -3,23 +3,33 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { loginAction } from './actions'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setError(null)
     setLoading(true)
-    const result = await loginAction(formData)
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
     setLoading(false)
-    if (result?.error) {
-      setError(result.error)
-    } else if (result?.success) {
-      router.push('/home')
+    if (error) {
+      setError('メールアドレスまたはパスワードが正しくありません')
+      return
     }
+
+    router.push('/home')
+    router.refresh()
   }
 
   return (
@@ -27,7 +37,7 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
         <h1 className="text-2xl font-bold text-center text-rose-500 mb-6">ログイン</h1>
 
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               メールアドレス
