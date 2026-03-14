@@ -12,7 +12,7 @@ export async function loginAction(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: 'メールアドレスまたはパスワードが正しくありません' }
+    return { error: `ログインエラー: ${error.message} (${error.status})` }
   }
 
   redirect('/home')
