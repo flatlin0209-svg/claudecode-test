@@ -74,34 +74,16 @@ export async function recordSwipe(
 
   if (action !== 'like') return { matchId: null }
 
-  // 相互いいね確認
-  const { data: mutual } = await supabase
-    .from('swipe_actions')
-    .select('id')
-    .eq('actor_id', targetId)
-    .eq('target_id', actorId)
-    .eq('action', 'like')
-    .single()
-
-  if (!mutual) return { matchId: null }
-
-  // マッチング作成（user1_id < user2_id で一意キー管理）
+  // DBトリガーが相互いいね検出時に自動でmatchesを作成する
+  // upsert後にmatchesテーブルを確認してmatchIdを返す
   const [user1, user2] = [actorId, targetId].sort()
 
-  const { data: existing } = await supabase
+  const { data: match } = await supabase
     .from('matches')
     .select('id')
     .eq('user1_id', user1)
     .eq('user2_id', user2)
     .single()
 
-  if (existing) return { matchId: existing.id }
-
-  const { data: newMatch } = await supabase
-    .from('matches')
-    .insert({ user1_id: user1, user2_id: user2 })
-    .select('id')
-    .single()
-
-  return { matchId: newMatch?.id ?? null }
+  return { matchId: match?.id ?? null }
 }
