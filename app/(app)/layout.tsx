@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import Navigation from '@/components/Navigation'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -10,17 +11,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login')
   }
 
-  // プロフィール未設定はプロフィール編集へ
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') ?? headersList.get('x-invoke-path') ?? ''
+
+  // プロフィール未設定かつ /profile/edit 以外ならリダイレクト
   const { data: profile } = await supabase
     .from('profiles')
     .select('is_profile_complete')
     .eq('id', user.id)
     .single()
 
-  const isEditPage = false // middleware でハンドリング済み
-
-  if (profile && !profile.is_profile_complete) {
-    // /profile/edit 以外にいる場合はリダイレクト
+  if (profile && !profile.is_profile_complete && !pathname.includes('/profile/edit')) {
     redirect('/profile/edit')
   }
 

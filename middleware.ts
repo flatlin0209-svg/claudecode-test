@@ -2,7 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  // x-pathname ヘッダーをセット（レイアウトで参照するため）
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(),
@@ -16,7 +22,9 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({
+            request: { headers: requestHeaders },
+          })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -25,12 +33,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // セッションを自動リフレッシュ
   const { data: { user } } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
 
-  // 未ログインユーザーが認証必須ページにアクセスした場合リダイレクト
   const authRequiredPaths = ['/home', '/profile', '/matches', '/chat']
   const isAuthRequired = authRequiredPaths.some(p => pathname.startsWith(p))
 
@@ -38,7 +43,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // ログイン済みユーザーが認証ページにアクセスした場合リダイレクト
   if (user && (pathname === '/login' || pathname === '/register')) {
     return NextResponse.redirect(new URL('/home', request.url))
   }
